@@ -31,19 +31,9 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.some(o => origin.includes(o))) {
-      return callback(null, true);
-    }
-
-    console.log("❌ Blocked by CORS:", origin);
-    return callback(new Error("Not allowed by CORS"));
-  },
+  origin: true,
   credentials: true
 }));
-
 
 // ==================== MIDDLEWARE ====================
 app.use(express.json({ limit: '10mb' }));
