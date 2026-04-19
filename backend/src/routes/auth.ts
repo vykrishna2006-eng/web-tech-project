@@ -1,11 +1,12 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { body, validationResult } from "express-validator";
+import { body, validationResult } from "express-validator"; // ✅ FIXED
 import pool from "../db/pool";
 import { authenticate, AuthRequest } from "../middleware/auth";
 
 const router = Router();
+
 
 // ================= REGISTER =================
 router.post(
@@ -18,9 +19,13 @@ router.post(
       .withMessage("Password must be at least 6 characters"),
   ],
   async (req: Request, res: Response) => {
+
+    console.log("REGISTER BODY:", req.body); // ✅ DEBUG
+
     const errors = validationResult(req);
-    if (!errors.isEmpty())
+    if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
+    }
 
     const { name, email, password } = req.body;
 
@@ -43,7 +48,6 @@ router.post(
 
       const user = result.rows[0];
 
-      // ✅ FIXED JWT
       const token = jwt.sign(
         { id: user.id },
         process.env.JWT_SECRET as string,
@@ -56,12 +60,14 @@ router.post(
       );
 
       res.status(201).json({ token, user });
+
     } catch (err) {
-      console.error(err);
+      console.error("REGISTER ERROR:", err); // ✅ DEBUG
       res.status(500).json({ error: "Server error" });
     }
   }
 );
+
 
 // ================= LOGIN =================
 router.post(
@@ -71,9 +77,13 @@ router.post(
     body("password").notEmpty(),
   ],
   async (req: Request, res: Response) => {
+
+    console.log("LOGIN BODY:", req.body); // ✅ DEBUG
+
     const errors = validationResult(req);
-    if (!errors.isEmpty())
+    if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
+    }
 
     const { email, password } = req.body;
 
@@ -85,15 +95,16 @@ router.post(
 
       const user = result.rows[0];
 
-      if (!user)
+      if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
+      }
 
       const valid = await bcrypt.compare(password, user.password_hash);
 
-      if (!valid)
+      if (!valid) {
         return res.status(401).json({ error: "Invalid credentials" });
+      }
 
-      // ✅ FIXED JWT
       const token = jwt.sign(
         { id: user.id },
         process.env.JWT_SECRET as string,
@@ -103,12 +114,14 @@ router.post(
       const { password_hash, ...safeUser } = user;
 
       res.json({ token, user: safeUser });
+
     } catch (err) {
-      console.error(err);
+      console.error("LOGIN ERROR:", err);
       res.status(500).json({ error: "Server error" });
     }
   }
 );
+
 
 // ================= ME =================
 router.get("/me", authenticate, async (req: AuthRequest, res: Response) => {
@@ -119,16 +132,20 @@ router.get("/me", authenticate, async (req: AuthRequest, res: Response) => {
     );
 
     res.json(result.rows[0]);
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // ================= UPDATE PROFILE =================
 router.put(
   "/profile",
   authenticate,
   async (req: AuthRequest, res: Response) => {
+
     const { name, avatar_url } = req.body;
 
     try {
@@ -138,7 +155,9 @@ router.put(
       );
 
       res.json(result.rows[0]);
+
     } catch (err) {
+      console.error(err);
       res.status(500).json({ error: "Server error" });
     }
   }
