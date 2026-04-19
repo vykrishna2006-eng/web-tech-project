@@ -24,7 +24,7 @@ const server = http.createServer(app);
 initSocket(server);
 
 
-// ✅ FIXED CORS (IMPORTANT)
+// ==================== ✅ FINAL CORS FIX ====================
 const allowedOrigins = [
   "http://localhost:3000",
   "https://web-tech-project-frontend-r4x3.vercel.app"
@@ -32,31 +32,41 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed"));
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.some(o => origin.includes(o))) {
+      return callback(null, true);
     }
+
+    console.log("❌ Blocked by CORS:", origin);
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true
 }));
 
 
-// Middleware
+// ==================== MIDDLEWARE ====================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(process.cwd(), process.env.UPLOAD_DIR || 'uploads')));
+
+app.use(
+  '/uploads',
+  express.static(
+    path.join(process.cwd(), process.env.UPLOAD_DIR || 'uploads')
+  )
+);
 
 
-// Rate limiting
+// ==================== RATE LIMIT ====================
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200
+  max: 200,
 });
+
 app.use('/api/', limiter);
 
 
-// Routes
+// ==================== ROUTES ====================
 app.use('/api/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -68,12 +78,13 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 
 
-// Health check
+// ==================== HEALTH CHECK ====================
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
 
+// ==================== SERVER ====================
 const PORT = process.env.PORT || 10000;
 
 server.listen(PORT, () => {
